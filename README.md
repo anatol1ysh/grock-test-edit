@@ -1,22 +1,18 @@
-# docker-elk
-Basic ELK stack in Docker
-
 # NGinX - Version (Stable) -> 1.16.1
-
 # Apache httpd - Version (Stable) -> 2.4.41
 
 # outside the docker-compose run the nginx in dedicated mode use Docker CLI:
-docker run -d -p 8080:80 --log-driver gelf --log-opt gelf-address=udp://localhost:12201 nginx:1.16.1
 
 docker run -d -p 8080:80 --log-driver gelf --log-opt gelf-address=udp://localhost:12201 --name=nginx nginx:1.16.1
 
-# elasti gude:
-https://www.elastic.co/guide/en/beats/metricbeat/current/metricbeat-reference-yml.html
+# steps to actions:
+  - configure come message by python script
+  - test cutom scripts for grok in elastic stack
 
-# ___ some links about Grafana :
-https://grafana.com/grafana/dashboards/2030
-https://grafana.com/grafana/dashboards/6058
-https://grafana.com/docs/features/datasources/elasticsearch/
+# ___ some links about:
+https://logz.io/blog/logstash-grok/
+https://logz.io/blog/logstash-mutate-filter/
+https://www.elastic.co/guide/en/logstash/2.3/plugins-filters-grok.html
 
 # ___ logstash:
 https://www.elastic.co/guide/en/logstash/current/field-extraction.html
@@ -26,3 +22,35 @@ https://www.elastic.co/guide/en/elasticsearch/reference/7.3/regexp-syntax.html
 
 # ___ 
 https://www.elastic.co/guide/en/elasticsearch/reference/current/analysis-custom-analyzer.html
+
+#analize prod input | filter | output ->
+input {
+    tcp {
+        port => 4560
+        codec => json_lines
+    }
+}
+filter {
+    grok {
+        match => {
+            "message" => "\"message\":%{GREEDYDATA:message},\"logdata\":%{GREEDYDATA:logdata},\"fields\":%{GREEDYDATA:fields}}"
+        }
+        overwrite => ["message"]
+    }
+    json {
+        source => "fields"
+        target => "parsed_fields"
+        remove_field => ["fields"]
+    }
+}
+output {
+    elasticsearch {
+        hosts => ["elasticsearch"]
+        manage_template => false
+        index => "logback-%{+YYYY.MM.dd}"
+        document_type => "logback-json-log"
+    }
+    stdout {
+        codec => rubydebug
+    }
+}
