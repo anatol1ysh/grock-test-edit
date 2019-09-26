@@ -1,0 +1,14 @@
+metricbeat.modules:
+- module: system
+  metricsets:
+    - cpu
+    - load
+    - memory
+    - diskio
+  enabled: true
+  period: 5s
+  processess: ['.*']
+
+output.elasticsearch:
+  # Array of hosts to connect to.
+  hosts: ["localhost:9200"]
